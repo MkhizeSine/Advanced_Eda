@@ -1,2 +1,4 @@
 streamlit
-
+ydata_profiling
+pandas
+sweetviz
