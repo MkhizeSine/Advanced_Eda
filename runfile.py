@@ -1,79 +1,55 @@
 import streamlit as st
 import pandas as pd
-from ydata_profiling import ProfileReport
-import sweetviz as sv
-import os
 
-# ----------------------
-# PAGE CONFIG
-# ----------------------
-st.set_page_config(page_title="EDA App", layout="wide")
+# Title
+st.title("📊 EDA Workshop App")
 
-st.title("📊 Exploratory Data Analysis App")
-st.write("Upload a dataset and generate automated EDA reports.")
+st.write("Upload your dataset and explore it interactively.")
 
-# ----------------------
-# FILE UPLOAD
-# ----------------------
-uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
-
-# ----------------------
-# LOAD DATA
-# ----------------------
-def load_data(file):
-    return pd.read_csv(file, sep=';')
+# File upload
+uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
 
 if uploaded_file is not None:
-    df = load_data(uploaded_file)
+    # Read dataset
+    df = pd.read_csv(uploaded_file, sep=';')
 
-    # ----------------------
-    # BASIC EDA
-    # ----------------------
     st.subheader("📌 Data Preview")
     st.dataframe(df.head(23))
 
+    # Info
     st.subheader("ℹ️ Data Info")
-    st.write("Shape:", df.shape)
-    st.write("Columns:", df.columns.tolist())
+    buffer = []
+    df.info(buf=buffer)
+    st.text("\n".join(buffer))
 
+    # Describe
     st.subheader("📈 Statistical Summary")
     st.write(df.describe())
 
+    # Missing values
     st.subheader("❗ Missing Values")
     st.write(df.isnull().sum())
 
-    # ----------------------
-    # REPORT GENERATION
-    # ----------------------
-    st.subheader("📊 Generate Reports")
+    # Optional: Profiling
+    st.subheader("📊 Automated EDA Reports")
 
-    col1, col2 = st.columns(2)
+    if st.button("Generate YData Profiling Report"):
+        from ydata_profiling import ProfileReport
+        profile = ProfileReport(df, title="EDA Report", explorative=True)
+        profile.to_file("eda_report.html")
+        
+        with open("eda_report.html", "r", encoding="utf-8") as f:
+            html_data = f.read()
+        st.components.v1.html(html_data, height=800, scrolling=True)
 
-    # YDATA PROFILING
-    with col1:
-        if st.button("Generate YData Profiling Report"):
-            with st.spinner("Generating report..."):
-                profile = ProfileReport(df, title="EDA Report", explorative=True)
-                profile.to_file("ydata_report.html")
+    if st.button("Generate Sweetviz Report"):
+        import sweetviz as sv
+        report = sv.analyze(df)
+        report.show_html("sweetviz_report.html")
 
-            with open("ydata_report.html", "r", encoding="utf-8") as f:
-                html_data = f.read()
-
-            st.success("YData report generated!")
-            st.components.v1.html(html_data, height=800, scrolling=True)
-
-    # SWEETVIZ
-    with col2:
-        if st.button("Generate Sweetviz Report"):
-            with st.spinner("Generating report..."):
-                report = sv.analyze(df)
-                report.show_html("sweetviz_report.html")
-
-            with open("sweetviz_report.html", "r", encoding="utf-8") as f:
-                html_data = f.read()
-
-            st.success("Sweetviz report generated!")
-            st.components.v1.html(html_data, height=800, scrolling=True)
+        with open("sweetviz_report.html", "r", encoding="utf-8") as f:
+            html_data = f.read()
+        st.components.v1.html(html_data, height=800, scrolling=True)
 
 else:
-    st.info("👆 Upload a CSV file to begin analysis.")
+    st.info("Please upload a CSV file to begin.")
